@@ -2,6 +2,9 @@
 // DataGrid dynamique pour la gestion des notifications admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useToast } from "@/context/ToastContext";
+import { useQuery, useMutation } from "@apollo/client";
+import { GET_NOTIFICATIONS, CREATE_NOTIFICATION, UPDATE_NOTIFICATION, REMOVE_NOTIFICATION } from "@/graphql/notifications";
 import NotificationFormModal from "./NotificationFormModal";
 
 // Mock data notifications (à remplacer par API GraphQL)
@@ -29,29 +32,76 @@ const mockNotifications = [
   },
 ];
 
+// Interface TypeScript pour une notification (selon le schéma GraphQL)
+interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  user_id: number;
+  created_at: string;
+  [key: string]: any;
+}
+
 export default function NotificationsDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
-  // Mock state pour la liste des notifications (à remplacer par API)
-  const [notifications, setNotifications] = useState(mockNotifications);
   // État d’ouverture de la modale d’ajout
   const [openModal, setOpenModal] = useState(false);
+  // État de la notification en cours d’édition
+  // Typage explicite pour éviter les erreurs de type
+interface Notification {
+  id: number;
+  title: string;
+  type: string;
+  date: string;
+  status: string;
+  is_read: boolean;
+}
+const [editNotification, setEditNotification] = useState<Notification | null>(null);
+
+  // Récupération des notifications via Apollo GraphQL
+  const { data, loading, error } = useQuery(GET_NOTIFICATIONS);
+  const notifications = data?.notifications || [];
 
   // Filtrage simple par titre ou message
-  const filtered = notifications.filter((n) =>
+  const filtered = notifications.filter((n: { title: string, type: string }) =>
     n.title.toLowerCase().includes(search.toLowerCase()) ||
     n.type.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Gestion de l’ajout d’une notification (mock, à remplacer par mutation GraphQL)
-  const handleAddNotification = (data: any) => {
-    setNotifications((prev) => [
-      { ...data, id: prev.length + 1, created_at: new Date().toISOString().slice(0, 10) },
-      ...prev,
-    ]);
+  // Mutations pour l’ajout, l’édition et la suppression de notifications
+  const [createNotification] = useMutation(CREATE_NOTIFICATION);
+  const [updateNotification] = useMutation(UPDATE_NOTIFICATION);
+  const [removeNotification] = useMutation(REMOVE_NOTIFICATION);
+
+  // Gestion de l’ajout d’une notification
+  const handleAddNotification = async (data: any) => {
+    await createNotification({
+      variables: {
+        data: {
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          is_read: data.is_read,
+          user_id: data.user_id,
+        },
+      },
+      refetchQueries: [{ query: GET_NOTIFICATIONS }],
+    });
   };
 
   return (
     <div className="bg-white/90 rounded-2xl shadow-2xl p-8 animate-fadein">
+      {/* Gestion loading/erreur UX pro */}
+      {loading && (
+        <div className="text-center text-pink-500 font-bold animate-pulse py-8">Chargement des notifications…</div>
+      )}
+      {error && (
+        <div className="text-center text-red-500 font-bold py-8">Erreur lors du chargement des notifications.</div>
+      )}
       {/* Bouton d’ajout de notification */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h2 className="text-xl font-bold text-[#0f3460]">Liste des notifications</h2>
@@ -72,11 +122,48 @@ export default function NotificationsDataGrid() {
           </button>
         </div>
       </div>
-      {/* Modale d’ajout de notification */}
+      {/* Modale d’ajout/édition de notification */}
       <NotificationFormModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSave={handleAddNotification}
+        onClose={() => {
+          setOpenModal(false);
+          setEditNotification(null);
+        }}
+        initialData={editNotification || undefined}
+        onSave={async (data: any) => {
+          if (editNotification) {
+            // Édition via mutation GraphQL
+            await updateNotification({
+              variables: {
+                id: editNotification.id,
+                data: {
+                  title: data.title,
+                  message: data.message,
+                  type: data.type,
+                  is_read: data.is_read,
+                  user_id: data.user_id,
+                },
+              },
+              refetchQueries: [{ query: GET_NOTIFICATIONS }],
+            });
+            setEditNotification(null);
+          } else {
+            // Ajout via mutation GraphQL
+            await createNotification({
+              variables: {
+                data: {
+                  title: data.title,
+                  message: data.message,
+                  type: data.type,
+                  is_read: data.is_read,
+                  user_id: data.user_id,
+                },
+              },
+              refetchQueries: [{ query: GET_NOTIFICATIONS }],
+            });
+          }
+          setOpenModal(false);
+        }}
       />
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -97,21 +184,41 @@ export default function NotificationsDataGrid() {
                 </td>
               </tr>
             ) : (
-              filtered.map((n) => (
-                <tr key={n.id} className={`border-b border-gray-200 ${n.status === "unread" ? "bg-yellow-50" : ""} hover:bg-blue-50 transition`}>
-                  <td className="py-3 px-4 font-semibold">{n.title}</td>
-                  <td className="py-3 px-4 text-center">{n.type}</td>
-                  <td className="py-3 px-4 text-center">{n.date}</td>
+              filtered.map((notification: { id: number; title: string; type: string; date: string; status: string; is_read: boolean }) => (
+                <tr key={notification.id} className={`border-b border-gray-200 ${!notification.is_read ? "bg-yellow-50" : ""} hover:bg-blue-50 transition`}>
+                  <td className="py-3 px-4 font-semibold">{notification.title}</td>
+                  <td className="py-3 px-4 text-center">{notification.type}</td>
+                  <td className="py-3 px-4 text-center">{notification.date}</td>
                   <td className="py-3 px-4 text-center">
-                    {n.status === "unread" ? (
+                    {notification.status === "unread" ? (
                       <span className="inline-block px-3 py-1 bg-pink-400/80 text-white rounded-full text-xs font-bold">Non lue</span>
                     ) : (
                       <span className="inline-block px-3 py-1 bg-green-400/80 text-white rounded-full text-xs font-bold">Lue</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-center flex gap-2 justify-center">
-                    <button className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition">Voir</button>
-                    <button className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition">Marquer comme lue</button>
+                  <td className="px-4 py-2 flex gap-2 justify-center">
+                    {/* Bouton d’édition */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-500 text-white font-bold transition"
+                      onClick={() => {
+                        // Ouvre la modale pré-remplie pour édition
+                        setEditNotification(notification);
+                        setOpenModal(true);
+                      }}
+                    >
+                      Éditer
+                    </button>
+                    {/* Bouton de suppression */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-700 text-white font-bold transition"
+                      onClick={async () => {
+                        if (window.confirm("Confirmer la suppression de cette notification ?")) {
+                          await removeNotification({ variables: { id: notification.id }, refetchQueries: [{ query: GET_NOTIFICATIONS }] });
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </button>
                   </td>
                 </tr>
               ))

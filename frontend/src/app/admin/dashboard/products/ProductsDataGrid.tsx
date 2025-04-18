@@ -2,46 +2,20 @@
 // DataGrid dynamique pour la gestion des produits admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useToast } from "@/context/ToastContext";
 import { useQuery, useMutation } from "@apollo/client";
 import { GET_PRODUCTS, UPDATE_PRODUCT, REMOVE_PRODUCT } from "@/graphql/products";
 import ProductFormModal from "./ProductFormModal";
 
-// Mock data produits (à remplacer par API GraphQL)
-const mockProducts = [
-  {
-    id: 1,
-    name: "T-shirt Zénith",
-    price: 29.99,
-    stock_quantity: 42,
-    type: "simple",
-    sku: "ZEN-TSHIRT-001",
-    is_active: true,
-  },
-  {
-    id: 2,
-    name: "Sweat Zénith",
-    price: 49.99,
-    stock_quantity: 18,
-    type: "simple",
-    sku: "ZEN-SWEAT-002",
-    is_active: false,
-  },
-  {
-    id: 3,
-    name: "Pack Découverte",
-    price: 89.99,
-    stock_quantity: 7,
-    type: "bundle",
-    sku: "ZEN-PACK-003",
-    is_active: true,
-  },
-];
+// Suppression des données mockées. Toutes les données proviennent désormais de l'API GraphQL.
 
 export default function ProductsDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
   // Les produits sont désormais récupérés via GraphQL
   // Les produits sont récupérés via GraphQL (plus de mock ni setProducts)
-
+  // Suppression : handleDeleteProduct à appeler sur action de suppression (ex : bouton)
   // État d’ouverture de la modale (ajout ou édition)
   const [openModal, setOpenModal] = useState(false);
   // Produit sélectionné pour édition (null = ajout)
@@ -62,6 +36,7 @@ export default function ProductsDataGrid() {
 
   // Filtrage simple par nom produit
   // Typage explicite du produit pour éviter tout warning TypeScript
+  // Filtrage dynamique sur les produits issus de l’API GraphQL
   const filtered = products.filter((p: {
     name: string;
     [key: string]: any;
@@ -198,11 +173,7 @@ export default function ProductsDataGrid() {
                     {/* Bouton de suppression */}
                     <button
                       className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-700 text-white font-bold transition"
-                      onClick={async () => {
-                        if (window.confirm("Confirmer la suppression de ce produit ?")) {
-                          await removeProduct({ variables: { id: product.id } });
-                        }
-                      }}
+                      onClick={() => handleDeleteProduct(product.id)}
                     >
                       Supprimer
                     </button>

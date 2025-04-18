@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SettingModule } from './setting/setting.module';
 import { ConfigModule } from '@nestjs/config'; // Module de configuration pour .env
 import { NotificationsModule } from './notifications/notifications.module';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -29,6 +30,8 @@ import { AdminModule } from './admin/admin.module'; // Module d'administration
 
 @Module({
   imports: [
+    // Module pour la gestion des paramètres globaux
+    SettingModule,
     // Charge automatiquement les variables d'environnement du fichier .env à la racine
     ConfigModule.forRoot({
       isGlobal: true, // Rend la config accessible partout

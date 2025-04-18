@@ -16,6 +16,8 @@ interface CouponFormModalProps {
   onSave: (data: any) => void; // À typer avec le modèle Coupon
 }
 
+import { useToast } from "@/context/ToastContext";
+
 export default function CouponFormModal({ open, onClose, initialData, onSave }: CouponFormModalProps) {
   // État du formulaire (création ou édition)
   const [form, setForm] = useState(
@@ -39,15 +41,20 @@ export default function CouponFormModal({ open, onClose, initialData, onSave }: 
   };
 
   // Soumission du formulaire (mock, à brancher sur GraphQL)
+  const { showToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: mutation GraphQL pour créer/éditer le coupon
-    setTimeout(() => {
+    try {
+      await onSave(form);
       setLoading(false);
-      onSave(form);
+      showToast(initialData ? "Coupon modifié avec succès !" : "Coupon créé avec succès !", "success");
       onClose();
-    }, 800);
+    } catch (err) {
+      setLoading(false);
+      showToast("Erreur lors de l'enregistrement du coupon.", "error");
+    }
   };
 
   if (!open) return null;

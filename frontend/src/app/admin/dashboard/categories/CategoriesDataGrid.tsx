@@ -2,6 +2,9 @@
 // DataGrid dynamique pour la gestion des catégories admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useToast } from "@/context/ToastContext";
+import { useQuery, useMutation } from "@apollo/client";
+import { GET_CATEGORIES, CREATE_CATEGORY, UPDATE_CATEGORY, REMOVE_CATEGORY } from "@/graphql/categories";
 import CategoryFormModal from "./CategoryFormModal";
 
 // Mock data catégories (à remplacer par API GraphQL)
@@ -30,27 +33,69 @@ const mockCategories = [
 ];
 
 export default function CategoriesDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
-  // Mock state pour la liste des catégories (à remplacer par API)
-  const [categories, setCategories] = useState(mockCategories);
   // État d’ouverture de la modale d’ajout
   const [openModal, setOpenModal] = useState(false);
+  // État de la catégorie en édition
+  // Typage explicite pour la catégorie en édition
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+  products: number;
+  is_active: boolean;
+}
+const [editCategory, setEditCategory] = useState<Category | null>(null);
 
-  // Filtrage simple par nom
-  const filtered = categories.filter((c) =>
+  // Récupération des catégories via Apollo GraphQL
+  const { data, loading, error } = useQuery(GET_CATEGORIES);
+  const categories = data?.categories || [];
+
+  // Filtrage simple par nom catégorie
+  const filtered = categories.filter((c: { name: string }) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Gestion de l’ajout d’une catégorie (mock, à remplacer par mutation GraphQL)
-  const handleAddCategory = (data: any) => {
-    setCategories((prev) => [
-      { ...data, id: prev.length + 1, products: 0 },
-      ...prev,
-    ]);
+  // Mutations pour l’ajout, l’édition et la suppression de catégories
+  const [createCategory] = useMutation(CREATE_CATEGORY);
+  const [updateCategory] = useMutation(UPDATE_CATEGORY);
+  const [removeCategory] = useMutation(REMOVE_CATEGORY);
+
+  // Gestion de l’ajout d’une catégorie
+  const handleAddCategory = async (data: any) => {
+    await createCategory({
+      variables: {
+        data: {
+          name: data.name,
+          description: data.description,
+          is_active: data.is_active,
+        },
+      },
+      refetchQueries: [{ query: GET_CATEGORIES }],
+    });
+  };
+
+  // Gestion de la suppression d’une catégorie
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      await removeCategory({ variables: { id }, refetchQueries: [{ query: GET_CATEGORIES }] });
+      showToast("Catégorie supprimée avec succès !", "success");
+    } catch (err) {
+      showToast("Erreur lors de la suppression de la catégorie.", "error");
+    }
   };
 
   return (
     <div className="bg-white/90 rounded-2xl shadow-2xl p-8 animate-fadein">
+      {/* Gestion loading/erreur UX pro */}
+      {loading && (
+        <div className="text-center text-pink-500 font-bold animate-pulse py-8">Chargement des catégories…</div>
+      )}
+      {error && (
+        <div className="text-center text-red-500 font-bold py-8">Erreur lors du chargement des catégories.</div>
+      )}
       {/* Bouton d’ajout de catégorie */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h2 className="text-xl font-bold text-[#0f3460]">Liste des catégories</h2>
@@ -71,11 +116,44 @@ export default function CategoriesDataGrid() {
           </button>
         </div>
       </div>
-      {/* Modale d’ajout de catégorie */}
+      {/* Modale d’ajout/édition de catégorie */}
       <CategoryFormModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSave={handleAddCategory}
+        onClose={() => {
+          setOpenModal(false);
+          setEditCategory(null);
+        }}
+        initialData={editCategory || undefined}
+        onSave={async (data: any) => {
+          if (editCategory) {
+            // Édition via mutation GraphQL
+            await updateCategory({
+              variables: {
+                id: editCategory.id,
+                data: {
+                  name: data.name,
+                  description: data.description,
+                  is_active: data.is_active,
+                },
+              },
+              refetchQueries: [{ query: GET_CATEGORIES }],
+            });
+            setEditCategory(null);
+          } else {
+            // Ajout via mutation GraphQL
+            await createCategory({
+              variables: {
+                data: {
+                  name: data.name,
+                  description: data.description,
+                  is_active: data.is_active,
+                },
+              },
+              refetchQueries: [{ query: GET_CATEGORIES }],
+            });
+          }
+          setOpenModal(false);
+        }}
       />
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -96,21 +174,41 @@ export default function CategoriesDataGrid() {
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => (
-                <tr key={c.id} className="border-b border-gray-200 hover:bg-pink-50 transition">
-                  <td className="py-3 px-4 font-semibold">{c.name}</td>
-                  <td className="py-3 px-4">{c.description}</td>
-                  <td className="py-3 px-4 text-center">{c.products}</td>
+              filtered.map((category: { id: number; name: string; description: string; products: number; is_active: boolean }) => (
+                <tr key={category.id} className="border-b border-gray-200 hover:bg-pink-50 transition">
+                  <td className="py-3 px-4 font-semibold">{category.name}</td>
+                  <td className="py-3 px-4">{category.description}</td>
+                  <td className="py-3 px-4 text-center">{category.products}</td>
                   <td className="py-3 px-4 text-center">
-                    {c.is_active ? (
+                    {category.is_active ? (
                       <span className="inline-block px-3 py-1 bg-green-400/80 text-white rounded-full text-xs font-bold">Active</span>
                     ) : (
                       <span className="inline-block px-3 py-1 bg-red-400/80 text-white rounded-full text-xs font-bold">Inactive</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-center flex gap-2 justify-center">
-                    <button className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition">Éditer</button>
-                    <button className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition">Supprimer</button>
+                  <td className="px-4 py-2 flex gap-2 justify-center">
+                    {/* Bouton d’édition */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-500 text-white font-bold transition"
+                      onClick={() => {
+                        // Ouvre la modale pré-remplie pour édition
+                        setEditCategory(category);
+                        setOpenModal(true);
+                      }}
+                    >
+                      Éditer
+                    </button>
+                    {/* Bouton de suppression */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-700 text-white font-bold transition"
+                      onClick={async () => {
+                        if (window.confirm("Confirmer la suppression de cette catégorie ?")) {
+                          await removeCategory({ variables: { id: category.id }, refetchQueries: [{ query: GET_CATEGORIES }] });
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </button>
                   </td>
                 </tr>
               ))

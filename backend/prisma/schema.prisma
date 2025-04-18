@@ -15,15 +15,18 @@ model Notification {
   target    User?    @relation(fields: [targetId], references: [id])
 }
 
+
 generator client {
   provider = "prisma-client-js"
   // output par défaut, le client sera généré dans le node_modules du backend
 }
 
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 
 model User {
   id         Int      @id @default(autoincrement())
@@ -45,6 +48,7 @@ model User {
   notifications Notification[]
 }
 
+
 model Product {
   id            Int      @id @default(autoincrement())
   name          String
@@ -64,6 +68,7 @@ model Product {
   order_items   OrderItem[]
 }
 
+
 model ProductVariant {
   id            Int      @id @default(autoincrement())
   product       Product  @relation(fields: [product_id], references: [id])
@@ -76,11 +81,13 @@ model ProductVariant {
   order_items   OrderItem[]
 }
 
+
 model ProductAttribute {
   id    Int    @id @default(autoincrement())
   name  String
   values ProductAttributeValue[]
 }
+
 
 model ProductAttributeValue {
   id           Int    @id @default(autoincrement())
@@ -89,6 +96,7 @@ model ProductAttributeValue {
   value        String
 }
 
+
 model Cart {
   id         Int      @id @default(autoincrement())
   user       User?    @relation(fields: [user_id], references: [id])
@@ -96,6 +104,7 @@ model Cart {
   session_id String?
   items      CartItem[]
 }
+
 
 model CartItem {
   id         Int      @id @default(autoincrement())
@@ -108,6 +117,7 @@ model CartItem {
   quantity   Int
   unit_price Float
 }
+
 
 model Order {
   id               Int      @id @default(autoincrement())
@@ -129,6 +139,7 @@ model Order {
   financial_transactions FinancialTransaction[]
 }
 
+
 model OrderItem {
   id         Int      @id @default(autoincrement())
   order      Order    @relation(fields: [order_id], references: [id])
@@ -142,6 +153,7 @@ model OrderItem {
   subtotal   Float
 }
 
+
 model Payment {
   id           Int      @id @default(autoincrement())
   order        Order    @relation(fields: [order_id], references: [id])
@@ -153,6 +165,7 @@ model Payment {
   paid_at      DateTime?
 }
 
+
 model Commission {
   id        Int      @id @default(autoincrement())
   order     Order    @relation(fields: [order_id], references: [id])
@@ -160,6 +173,7 @@ model Commission {
   amount    Float
   collected Boolean @default(false)
 }
+
 
 model ShippingAddress {
   id         Int      @id @default(autoincrement())
@@ -173,12 +187,14 @@ model ShippingAddress {
   postal_code String
 }
 
+
 model ShippingMethod {
   id    Int    @id @default(autoincrement())
   name  String // (standard, express)
   price Float
   order_shipments OrderShipment[]
 }
+
 
 model OrderShipment {
   id                Int      @id @default(autoincrement())
@@ -192,6 +208,7 @@ model OrderShipment {
   delivered_at      DateTime?
 }
 
+
 model Coupon {
   id            Int      @id @default(autoincrement())
   code          String   @unique
@@ -204,6 +221,7 @@ model Coupon {
   order_coupons OrderCoupon[]
 }
 
+
 model OrderCoupon {
   id               Int      @id @default(autoincrement())
   order            Order    @relation(fields: [order_id], references: [id])
@@ -212,6 +230,7 @@ model OrderCoupon {
   coupon_id        Int
   discount_applied Float
 }
+
 
 model Return {
   id           Int      @id @default(autoincrement())
@@ -224,6 +243,7 @@ model Return {
   refund_amount Float
 }
 
+
 model FinancialTransaction {
   id        Int      @id @default(autoincrement())
   user      User?    @relation(fields: [user_id], references: [id])
@@ -235,3 +255,4 @@ model FinancialTransaction {
   status    String
   created_at DateTime @default(now())
 }
+

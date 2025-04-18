@@ -15,6 +15,8 @@ interface ClientFormModalProps {
   onSave: (data: any) => void; // À typer avec le modèle User
 }
 
+import { useToast } from "@/context/ToastContext";
+
 export default function ClientFormModal({ open, onClose, initialData, onSave }: ClientFormModalProps) {
   // État du formulaire (création ou édition)
   const [form, setForm] = useState(
@@ -34,15 +36,20 @@ export default function ClientFormModal({ open, onClose, initialData, onSave }: 
   };
 
   // Soumission du formulaire (mock, à brancher sur GraphQL)
+  const { showToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: mutation GraphQL pour créer/éditer le client
-    setTimeout(() => {
+    try {
+      await onSave(form);
       setLoading(false);
-      onSave(form);
+      showToast(initialData ? "Client modifié avec succès !" : "Client créé avec succès !", "success");
       onClose();
-    }, 800);
+    } catch (err) {
+      setLoading(false);
+      showToast("Erreur lors de l'enregistrement du client.", "error");
+    }
   };
 
   if (!open) return null;

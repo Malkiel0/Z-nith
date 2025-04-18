@@ -14,6 +14,8 @@ interface CategoryFormModalProps {
   onSave: (data: any) => void; // À typer avec le modèle Category
 }
 
+import { useToast } from "@/context/ToastContext";
+
 export default function CategoryFormModal({ open, onClose, initialData, onSave }: CategoryFormModalProps) {
   // État du formulaire (création ou édition)
   const [form, setForm] = useState(
@@ -35,15 +37,20 @@ export default function CategoryFormModal({ open, onClose, initialData, onSave }
   };
 
   // Soumission du formulaire (mock, à brancher sur GraphQL)
+  const { showToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: mutation GraphQL pour créer/éditer la catégorie
-    setTimeout(() => {
+    try {
+      await onSave(form);
       setLoading(false);
-      onSave(form);
+      showToast(initialData ? "Catégorie modifiée avec succès !" : "Catégorie créée avec succès !", "success");
       onClose();
-    }, 800);
+    } catch (err) {
+      setLoading(false);
+      showToast("Erreur lors de l'enregistrement de la catégorie.", "error");
+    }
   };
 
   if (!open) return null;

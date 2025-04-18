@@ -2,6 +2,22 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Setting {
+  id: Int!
+  shopName: String!
+  email: String!
+  currency: String!
+  theme: String!
+  maintenance: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
 type User {
   id: Int!
   name: String!
@@ -12,11 +28,6 @@ type User {
   created_at: DateTime!
   updated_at: DateTime!
 }
-
-"""
-A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
-"""
-scalar DateTime
 
 type ProductVariant {
   id: Int!
@@ -171,6 +182,7 @@ type FinancialTransaction {
 }
 
 type Query {
+  settings: Setting
   users: [User!]!
   user(id: Int!): User
   products: [Product!]!
@@ -208,6 +220,7 @@ type Query {
 }
 
 type Mutation {
+  updateSettings(shopName: String!, email: String!, currency: String!, theme: String!, maintenance: Boolean!): Setting!
   createProduct(name: String!, slug: String!, description: String!, price: Float!, discount_price: Float, type: String!, stock_quantity: Int!, sku: String!, is_active: Boolean!, image_url: String): Product!
   updateProduct(id: Int!, data: String!): Product!
   removeProduct(id: Int!): Product!

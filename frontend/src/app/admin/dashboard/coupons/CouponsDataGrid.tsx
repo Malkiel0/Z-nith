@@ -2,6 +2,9 @@
 // DataGrid dynamique pour la gestion des coupons admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useToast } from "@/context/ToastContext";
+import { useQuery, useMutation } from "@apollo/client";
+import { GET_COUPONS, CREATE_COUPON, UPDATE_COUPON, REMOVE_COUPON } from "@/graphql/coupons";
 import CouponFormModal from "./CouponFormModal";
 
 // Mock data coupons (à remplacer par API GraphQL)
@@ -38,28 +41,68 @@ const mockCoupons = [
   },
 ];
 
+// Interface TypeScript pour un coupon (selon le schéma GraphQL)
+interface Coupon {
+  id: number;
+  code: string;
+  discount: number;
+  type: string;
+  expiration_date: string;
+  is_active: boolean;
+  [key: string]: any;
+}
+
 export default function CouponsDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
-  // Mock state pour la liste des coupons (à remplacer par API)
-  const [coupons, setCoupons] = useState(mockCoupons);
-  // État d’ouverture de la modale d’ajout
+  // État d’ouverture/fermeture de la modale d’ajout/édition
   const [openModal, setOpenModal] = useState(false);
+  // Coupon sélectionné pour édition
+  const [editCoupon, setEditCoupon] = useState<Coupon | null>(null);
+
+  // Récupération des coupons via Apollo GraphQL
+  const { data, loading, error } = useQuery(GET_COUPONS);
+  const coupons = data?.coupons || [];
 
   // Filtrage simple par code coupon
-  const filtered = coupons.filter((c) =>
-    c.code.toLowerCase().includes(search.toLowerCase())
+  const filtered = coupons.filter((coupon: Coupon) =>
+    coupon.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Gestion de l’ajout d’un coupon (mock, à remplacer par mutation GraphQL)
-  const handleAddCoupon = (data: any) => {
-    setCoupons((prev) => [
-      { ...data, id: prev.length + 1 },
-      ...prev,
-    ]);
+  // Gestion de l’ajout d’un coupon (mutation GraphQL)
+  const [createCoupon] = useMutation(CREATE_COUPON);
+  const handleAddCoupon = async (data: any) => {
+    await createCoupon({ variables: data });
   };
+
+  // Gestion de la suppression d’un coupon
+  const [removeCoupon] = useMutation(REMOVE_COUPON);
+  const handleDeleteCoupon = async (id: number) => {
+    try {
+      await removeCoupon({ variables: { id }, refetchQueries: [{ query: GET_COUPONS }] });
+      showToast("Coupon supprimé avec succès !", "success");
+    } catch (err) {
+      showToast("Erreur lors de la suppression du coupon.", "error");
+    }
+  };
+
+  // Gestion de l’édition d’un coupon (mutation GraphQL)
+  const [updateCoupon] = useMutation(UPDATE_COUPON);
+  const handleEditCoupon = async (data: any) => {
+    await updateCoupon({ variables: data });
+  };
+
 
   return (
     <div className="bg-white/90 rounded-2xl shadow-2xl p-8 animate-fadein">
+      {/* Gestion loading/erreur UX pro */}
+      {loading && (
+        <div className="text-center text-pink-500 font-bold animate-pulse py-8">Chargement des coupons…</div>
+      )}
+      {error && (
+        <div className="text-center text-red-500 font-bold py-8">Erreur lors du chargement des coupons.</div>
+      )}
       {/* Bouton d’ajout de coupon */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h2 className="text-xl font-bold text-[#0f3460]">Liste des coupons</h2>
@@ -80,11 +123,21 @@ export default function CouponsDataGrid() {
           </button>
         </div>
       </div>
-      {/* Modale d’ajout de coupon */}
+      {/* Modale d’ajout/édition de coupon */}
       <CouponFormModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSave={handleAddCoupon}
+        onClose={() => {
+          setOpenModal(false);
+          setEditCoupon(null);
+        }}
+        initialData={editCoupon ? {
+          code: editCoupon.code,
+          discount: editCoupon.discount,
+          type: editCoupon.type as "fixed" | "percentage",
+          expires_at: editCoupon.expiration_date,
+          is_active: editCoupon.is_active,
+        } : undefined}
+        onSave={editCoupon ? handleEditCoupon : handleAddCoupon}
       />
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -107,27 +160,35 @@ export default function CouponsDataGrid() {
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => (
-                <tr key={c.id} className="border-b border-gray-200 hover:bg-green-50 transition">
-                  <td className="py-3 px-4 font-semibold">{c.code}</td>
-                  <td className="py-3 px-4 text-center">{c.type}</td>
-                  <td className="py-3 px-4 text-center">
-                    {c.type === "Pourcentage" && `${c.value}%`}
-                    {c.type === "Montant" && `${c.value}€`}
-                    {c.type === "Livraison" && "Gratuite"}
-                  </td>
-                  <td className="py-3 px-4 text-center">{c.usage} / {c.max_usage}</td>
-                  <td className="py-3 px-4 text-center">{c.valid_until}</td>
-                  <td className="py-3 px-4 text-center">
-                    {c.is_active ? (
-                      <span className="inline-block px-3 py-1 bg-green-400/80 text-white rounded-full text-xs font-bold">Actif</span>
-                    ) : (
-                      <span className="inline-block px-3 py-1 bg-red-400/80 text-white rounded-full text-xs font-bold">Inactif</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-center flex gap-2 justify-center">
-                    <button className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition">Éditer</button>
-                    <button className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition">Supprimer</button>
+              filtered.map((coupon: Coupon) => (
+                <tr key={coupon.id} className="border-b border-gray-200 hover:bg-green-50 transition">
+                  <td className="py-3 px-4 font-semibold">{coupon.code}</td>
+                  <td className="py-3 px-4 text-center">{coupon.type}</td>
+                  <td className="py-3 px-4 text-center">{coupon.discount}</td>
+                  <td className="py-3 px-4 text-center">{new Date(coupon.expiration_date).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 flex gap-2 justify-center">
+                    {/* Bouton d’édition */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-500 text-white font-bold transition"
+                      onClick={() => {
+                        // Ouvre la modale pré-remplie pour édition
+                        setEditCoupon(coupon);
+                        setOpenModal(true);
+                      }}
+                    >
+                      Éditer
+                    </button>
+                    {/* Bouton de suppression */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-700 text-white font-bold transition"
+                      onClick={async () => {
+                        if (window.confirm("Confirmer la suppression de ce coupon ?")) {
+                          await removeCoupon({ variables: { id: coupon.id }, refetchQueries: [{ query: GET_COUPONS }] });
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </button>
                   </td>
                 </tr>
               ))

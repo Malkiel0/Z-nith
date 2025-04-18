@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 import AuthSessionProvider from "./SessionProvider";
 import CustomApolloProvider from "./ApolloProvider";
 
+import { ToastProvider } from "@/context/ToastContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,7 +36,10 @@ export default function RootLayout({
         {/* Fournit les contextes Auth et Apollo à toute l’app */}
         <AuthSessionProvider>
           <CustomApolloProvider>
-            {children}
+            {/* Fournit le contexte Toast global à toute l'app */}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </CustomApolloProvider>
         </AuthSessionProvider>
       </body>

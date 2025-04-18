@@ -15,6 +15,8 @@ interface NotificationFormModalProps {
   onSave: (data: any) => void; // À typer avec le modèle Notification
 }
 
+import { useToast } from "@/context/ToastContext";
+
 export default function NotificationFormModal({ open, onClose, initialData, onSave }: NotificationFormModalProps) {
   // État du formulaire (création ou édition)
   const [form, setForm] = useState(
@@ -37,15 +39,20 @@ export default function NotificationFormModal({ open, onClose, initialData, onSa
   };
 
   // Soumission du formulaire (mock, à brancher sur GraphQL)
+  const { showToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: mutation GraphQL pour créer/éditer la notification
-    setTimeout(() => {
+    try {
+      await onSave(form);
       setLoading(false);
-      onSave(form);
+      showToast(initialData ? "Notification modifiée avec succès !" : "Notification créée avec succès !", "success");
       onClose();
-    }, 800);
+    } catch (err) {
+      setLoading(false);
+      showToast("Erreur lors de l'enregistrement de la notification.", "error");
+    }
   };
 
   if (!open) return null;

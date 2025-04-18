@@ -2,6 +2,9 @@
 // DataGrid dynamique pour la gestion des retours admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useToast } from "@/context/ToastContext";
+import { useQuery, useMutation } from "@apollo/client";
+import { GET_RETURNS, CREATE_RETURN, UPDATE_RETURN, REMOVE_RETURN } from "@/graphql/returns";
 import ReturnFormModal from "./ReturnFormModal";
 
 // Mock data retours (à remplacer par API GraphQL)
@@ -42,28 +45,65 @@ const statusMap: Record<string, { label: string; color: string }> = {
   refunded: { label: "Remboursé", color: "bg-blue-400/80" },
 };
 
+// Interface TypeScript pour un retour (selon le schéma GraphQL)
+interface Return {
+  id: number;
+  order_id: number;
+  user_id: number;
+  status: string;
+  reason: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: any;
+}
+
 export default function ReturnsDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
-  // Mock state pour la liste des retours (à remplacer par API)
-  const [returns, setReturns] = useState(mockReturns);
+  // Les retours sont désormais récupérés via GraphQL
+  // const [returns, setReturns] = useState(mockReturns);
   // État d’ouverture de la modale d’ajout
   const [openModal, setOpenModal] = useState(false);
+  const [editReturn, setEditReturn] = useState(null);
 
-  // Filtrage simple par ID commande
-  const filtered = returns.filter((r) =>
+  // Récupération des retours via Apollo GraphQL
+  const { data, loading, error } = useQuery(GET_RETURNS);
+  const returns = data?.returns || [];
+
+  // Filtrage simple par numéro de commande
+  const filtered = returns.filter((r: Return) =>
     r.order_id.toString().includes(search)
   );
 
   // Gestion de l’ajout d’un retour (mock, à remplacer par mutation GraphQL)
-  const handleAddReturn = (data: any) => {
-    setReturns((prev) => [
-      { ...data, id: prev.length + 1, created_at: new Date().toISOString().slice(0, 10) },
-      ...prev,
-    ]);
+  const [createReturn] = useMutation(CREATE_RETURN);
+  const [updateReturn] = useMutation(UPDATE_RETURN);
+  const [removeReturn] = useMutation(REMOVE_RETURN);
+
+  const handleAddReturn = async (data: any) => {
+    await createReturn({
+      variables: {
+        data: {
+          order_id: data.order_id,
+          user_id: data.user_id,
+          status: data.status,
+          reason: data.reason,
+        },
+      },
+      refetchQueries: [{ query: GET_RETURNS }],
+    });
   };
 
   return (
     <div className="bg-white/90 rounded-2xl shadow-2xl p-8 animate-fadein">
+      {/* Gestion loading/erreur UX pro */}
+      {loading && (
+        <div className="text-center text-pink-500 font-bold animate-pulse py-8">Chargement des retours…</div>
+      )}
+      {error && (
+        <div className="text-center text-red-500 font-bold py-8">Erreur lors du chargement des retours.</div>
+      )}
       {/* Bouton d’ajout de retour */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h2 className="text-xl font-bold text-[#0f3460]">Liste des retours</h2>
@@ -84,11 +124,36 @@ export default function ReturnsDataGrid() {
           </button>
         </div>
       </div>
-      {/* Modale d’ajout de retour */}
+      {/* Modale d’ajout/édition de retour */}
       <ReturnFormModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSave={handleAddReturn}
+        onClose={() => {
+          setOpenModal(false);
+          setEditReturn(null);
+        }}
+        initialData={editReturn || undefined}
+        onSave={async (data: any) => {
+          if (editReturn) {
+            // Édition via mutation GraphQL
+            await updateReturn({
+              variables: {
+                id: editReturn.id,
+                data: {
+                  order_id: data.order_id,
+                  user_id: data.user_id,
+                  status: data.status,
+                  reason: data.reason,
+                },
+              },
+              refetchQueries: [{ query: GET_RETURNS }],
+            });
+            setEditReturn(null);
+          } else {
+            // Ajout via mutation GraphQL
+            await handleAddReturn(data);
+          }
+          setOpenModal(false);
+        }}
       />
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -111,8 +176,8 @@ export default function ReturnsDataGrid() {
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
-                <tr key={r.id} className="border-b border-gray-200 hover:bg-yellow-50 transition">
+              filtered.map((r: Return) => (
+                <tr key={r.id} className="border-b border-gray-200 hover:bg-pink-50 transition">
                   <td className="py-3 px-4 font-semibold">#{r.order_id}</td>
                   <td className="py-3 px-4">{r.client}</td>
                   <td className="py-3 px-4">{r.date}</td>
@@ -123,9 +188,29 @@ export default function ReturnsDataGrid() {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">{r.amount.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-center flex gap-2 justify-center">
-                    <button className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition">Voir</button>
-                    <button className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition">Statut</button>
+                  <td className="px-4 py-2 flex gap-2 justify-center">
+                    {/* Bouton d’édition */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-500 text-white font-bold transition"
+                      onClick={() => {
+                        // Ouvre la modale pré-remplie pour édition
+                        setEditReturn(r);
+                        setOpenModal(true);
+                      }}
+                    >
+                      Éditer
+                    </button>
+                    {/* Bouton de suppression */}
+                    <button
+                      className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-700 text-white font-bold transition"
+                      onClick={async () => {
+                        if (window.confirm("Confirmer la suppression de ce retour ?")) {
+                          await removeReturn({ variables: { id: r.id }, refetchQueries: [{ query: GET_RETURNS }] });
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </button>
                   </td>
                 </tr>
               ))

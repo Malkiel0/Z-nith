@@ -9,31 +9,31 @@ export declare class NotificationsService {
         targetId?: number;
     }): Promise<{
         id: number;
+        createdAt: Date;
         title: string;
         message: string;
         type: string;
         targetId: number | null;
         read: boolean;
-        createdAt: Date;
     }>;
     getAdminNotifications({ onlyUnread }?: {
         onlyUnread?: boolean;
     }): Promise<{
         id: number;
+        createdAt: Date;
         title: string;
         message: string;
         type: string;
         targetId: number | null;
         read: boolean;
-        createdAt: Date;
     }[]>;
     markAsRead(id: number): Promise<{
         id: number;
+        createdAt: Date;
         title: string;
         message: string;
         type: string;
         targetId: number | null;
         read: boolean;
-        createdAt: Date;
     }>;
 }

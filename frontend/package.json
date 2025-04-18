@@ -13,6 +13,7 @@
     "@auth/prisma-adapter": "^2.8.0",
     "@prisma/client": "^6.6.0",
     "chart.js": "^4.4.9",
+    "framer-motion": "^12.7.4",
     "graphql": "^16.10.0",
     "next": "15.3.0",
     "next-auth": "^4.24.11",

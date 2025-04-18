@@ -2,9 +2,11 @@
 // DataGrid dynamique pour la gestion des commandes admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useQuery } from "@apollo/client";
+import { GET_ORDERS } from "@/graphql/orders";
+import { useToast } from "@/context/ToastContext";
 
-// Mock data commandes (à remplacer par API GraphQL)
-const mockOrders = [
+// Suppression des données mockées. Les commandes sont désormais récupérées dynamiquement via GraphQL.
   {
     id: 101,
     client: "Alice Dupont",
@@ -40,9 +42,23 @@ const statusMap: Record<string, { label: string; color: string }> = {
 };
 
 export default function OrdersDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
   // Filtrage simple par nom client ou ID
-  const filtered = mockOrders.filter((o) =>
+  // Filtrage dynamique sur les commandes issues de l’API GraphQL
+const { data, loading, error } = useQuery(GET_ORDERS);
+const orders = data?.orders || [];
+// Typage explicite pour chaque commande (Order)
+interface Order {
+  id: number;
+  client: string;
+  date: string;
+  status: string;
+  total: number;
+  items: number;
+}
+const filtered = orders.filter((o: Order) =>
     o.client.toLowerCase().includes(search.toLowerCase()) ||
     o.id.toString().includes(search)
   );

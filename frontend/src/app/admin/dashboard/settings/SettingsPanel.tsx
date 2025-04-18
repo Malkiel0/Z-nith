@@ -2,18 +2,16 @@
 // Panneau de configuration des paramètres admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useQuery } from "@apollo/client";
+import { GET_SETTINGS } from "@/graphql/settings";
 
-// Mock settings (à remplacer par API GraphQL)
-const initialSettings = {
-  shopName: "Zénith",
-  email: "contact@zenith.com",
-  maintenance: false,
-  currency: "EUR",
-  theme: "clair",
-};
+// Suppression des paramètres mockés. Les paramètres sont désormais récupérés dynamiquement via API.
 
 export default function SettingsPanel() {
-  const [settings, setSettings] = useState(initialSettings);
+  // State settings désormais initialisé dynamiquement depuis l’API
+const { data, loading, error } = useQuery(GET_SETTINGS);
+// Initialise le state settings dynamiquement après récupération des données
+const [settings, setSettings] = useState(() => data?.settings || {});
   const [editMode, setEditMode] = useState(false);
 
   // Gestion du changement d’un champ
@@ -34,7 +32,7 @@ export default function SettingsPanel() {
   };
 
   return (
-    <div className="bg-white/90 rounded-2xl shadow-2xl p-8 animate-fadein max-w-xl mx-auto">
+    <div className="bg-white/90 dark:bg-[#232526]/90 rounded-2xl shadow-2xl p-8 animate-fadein max-w-xl mx-auto dark:text-white">
       <h2 className="text-2xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-center">
         Paramètres de la boutique
       </h2>

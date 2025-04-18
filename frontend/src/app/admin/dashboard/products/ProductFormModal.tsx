@@ -20,6 +20,8 @@ interface ProductFormModalProps {
   onSave: (data: any) => void; // À typer avec le modèle Product
 }
 
+import { useToast } from "@/context/ToastContext";
+
 export default function ProductFormModal({ open, onClose, initialData, onSave }: ProductFormModalProps) {
   // État du formulaire (création ou édition)
   const [form, setForm] = useState(
@@ -57,6 +59,8 @@ export default function ProductFormModal({ open, onClose, initialData, onSave }:
 
   // Soumission du formulaire (mock, à brancher sur GraphQL)
   // Soumission du formulaire : mutation GraphQL création produit
+  const { showToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -75,11 +79,11 @@ export default function ProductFormModal({ open, onClose, initialData, onSave }:
         },
       });
       setLoading(false);
+      showToast("Produit créé avec succès !", "success");
       onClose();
     } catch (err) {
       setLoading(false);
-      // Affiche une erreur UX si besoin
-      alert("Erreur lors de la création du produit.");
+      showToast("Erreur lors de la création du produit.", "error");
     }
   };
 

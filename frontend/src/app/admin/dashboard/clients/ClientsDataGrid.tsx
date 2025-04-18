@@ -2,6 +2,7 @@
 // DataGrid dynamique pour la gestion des clients admin Zénith
 // Clean code, ultra commenté, design pro, prêt pour API GraphQL
 import React, { useState } from "react";
+import { useToast } from "@/context/ToastContext";
 import { useQuery, useMutation } from "@apollo/client";
 import { GET_CLIENTS, CREATE_CLIENT, UPDATE_CLIENT, REMOVE_CLIENT } from "@/graphql/clients";
 import ClientFormModal from "./ClientFormModal";
@@ -38,18 +39,42 @@ const mockClients = [
 ];
 
 export default function ClientsDataGrid() {
+  // Hook pour les toasts dynamiques
+  const { showToast } = useToast();
   const [search, setSearch] = useState("");
   // État d’ouverture de la modale d’ajout
   const [openModal, setOpenModal] = useState(false);
   // État du client en cours d’édition
-  const [editClient, setEditClient] = useState(null);
+  // Typage explicite pour le client en édition
+interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  role?: string;
+  orders?: number;
+  created_at?: string;
+}
+const [editClient, setEditClient] = useState<Client | null>(null);
 
   // Récupération des clients via Apollo GraphQL
   const { data, loading, error } = useQuery(GET_CLIENTS);
   const clients = data?.users || [];
 
   // Filtrage simple par nom ou email
-  const filtered = clients.filter((c) =>
+  // Typage explicite pour éviter tout warning TypeScript
+  const filtered = clients.filter((c: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    status: string;
+    role?: string;
+    orders?: number;
+    created_at?: string;
+    [key: string]: any;
+  }) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -75,8 +100,22 @@ export default function ClientsDataGrid() {
     setOpenModal(false);
   };
 
+  // Gestion de la suppression d’un client
+  const handleDeleteClient = async (id: number) => {
+    try {
+      await removeClient({ variables: { id } });
+      showToast("Client supprimé avec succès !", "success");
+    } catch (err) {
+      showToast("Erreur lors de la suppression du client.", "error");
+    }
+  };
+
   // Gestion de l’édition d’un client
   const handleEditClient = (data: any) => {
+    if (!editClient) {
+      showToast("Aucun client sélectionné pour l’édition.", "error");
+      return;
+    }
     updateClient({ variables: { id: editClient.id, data } });
     setEditClient(null);
     setOpenModal(false);
@@ -119,7 +158,9 @@ export default function ClientsDataGrid() {
           setEditClient(null);
         }}
         initialData={editClient || undefined}
-        onSave={editClient ? handleEditClient : handleAddClient}
+        onSave={editClient ? (data: any) => {
+          if (editClient) handleEditClient(data);
+        } : handleAddClient}
       />
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -142,7 +183,7 @@ export default function ClientsDataGrid() {
                 </td>
               </tr>
             ) : (
-              filtered.map((client) => (
+              filtered.map((client: { id: number; name: string; email: string; phone: string; status: string; role?: string; orders?: number; created_at?: string; }) => (
                 <tr key={client.id} className="border-b border-gray-200 hover:bg-blue-50 transition">
                   <td className="py-3 px-4 font-semibold">{client.name}</td>
                   <td className="py-3 px-4">{client.email}</td>
