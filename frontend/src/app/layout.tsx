@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import AuthSessionProvider from "./SessionProvider";
+import CustomApolloProvider from "./ApolloProvider";
 
 export default function RootLayout({
   children,
@@ -30,8 +31,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Fournit les contextes Auth et Apollo à toute l’app */}
         <AuthSessionProvider>
-          {children}
+          <CustomApolloProvider>
+            {children}
+          </CustomApolloProvider>
         </AuthSessionProvider>
       </body>
     </html>
