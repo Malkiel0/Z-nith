@@ -1,0 +1,9 @@
+# Frontend Zénith
+
+- Next.js 14 (React Server Components)
+- Tailwind CSS v3
+- NextAuth.js (JWT, OAuth)
+- Connexion GraphQL avec le backend
+- Socket.io pour le temps réel
+
+Ce dossier contiendra l'application Next.js avec une UI unique, animations, transitions, pages d'authentification, etc.

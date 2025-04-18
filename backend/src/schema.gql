@@ -1,0 +1,257 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type User {
+  id: Int!
+  name: String!
+  email: String!
+  phone: String
+  role: String!
+  status: String!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type ProductVariant {
+  id: Int!
+  product_id: Int!
+  name: String!
+  price: Float!
+  stock_quantity: Int!
+  sku: String!
+}
+
+type Product {
+  id: Int!
+  name: String!
+  slug: String!
+  description: String!
+  price: Float!
+  discount_price: Float
+  type: String!
+  stock_quantity: Int!
+  sku: String!
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime!
+  variants: [ProductVariant!]
+}
+
+type ProductAttributeValue {
+  id: Int!
+  attribute_id: Int!
+  value: String!
+}
+
+type ProductAttribute {
+  id: Int!
+  name: String!
+  values: [ProductAttributeValue!]
+}
+
+type CartItem {
+  id: Int!
+  cart_id: Int!
+  product_id: Int!
+  variant_id: Int
+  quantity: Int!
+  unit_price: Float!
+}
+
+type Cart {
+  id: Int!
+  user_id: Float
+  session_id: String
+  items: [CartItem!]
+}
+
+type OrderItem {
+  id: Int!
+  order_id: Int!
+  product_id: Int!
+  variant_id: Int
+  quantity: Int!
+  unit_price: Float!
+}
+
+type Order {
+  id: Int!
+  user_id: Int
+  session_id: String
+  total_amount: Float!
+  status: String!
+  items: [OrderItem!]
+  created_at: String!
+  updated_at: String!
+}
+
+type Payment {
+  id: Int!
+  order_id: Int!
+  amount: Float!
+  method: String!
+  status: String!
+  transaction_id: String!
+  created_at: String!
+}
+
+type ShippingAddress {
+  id: Int!
+  user_id: Int
+  session_id: String
+  full_name: String!
+  phone: String!
+  address_line1: String!
+  address_line2: String
+  city: String!
+  postal_code: String!
+  country: String!
+}
+
+type ShippingMethod {
+  id: Int!
+  name: String!
+  description: String!
+  price: Float!
+  estimated_delay: String!
+}
+
+type OrderShipment {
+  id: Int!
+  order_id: Int!
+  shipping_address_id: Int!
+  shipping_method_id: Int!
+  status: String!
+  tracking_number: String
+  shipped_at: String
+  delivered_at: String
+}
+
+type Commission {
+  id: Int!
+  order_id: Int!
+  amount: Float!
+  collected: Boolean!
+}
+
+type Coupon {
+  id: Int!
+  code: String!
+  discount_type: String!
+  discount_value: Float!
+  max_usage: Int!
+  used_count: Int!
+  expires_at: DateTime
+  is_active: Boolean!
+}
+
+type Return {
+  id: Int!
+  order_id: Int!
+  user_id: Int!
+  reason: String!
+  status: String!
+  refund_amount: Float!
+}
+
+type FinancialTransaction {
+  id: Int!
+  order_id: Int!
+  amount: Float!
+  type: String!
+  status: String!
+  transaction_id: String!
+  created_at: String!
+}
+
+type Query {
+  users: [User!]!
+  user(id: Int!): User
+  products: [Product!]!
+  product(id: Int!): Product
+  productVariants(productId: Int!): [ProductVariant!]!
+  productVariantsByProduct(product_id: Int!): [ProductVariant!]!
+  productVariant(id: Int!): ProductVariant
+  productAttributes: [ProductAttribute!]!
+  productAttribute(id: Int!): ProductAttribute
+  productAttributeValuesByAttribute(attribute_id: Int!): [ProductAttributeValue!]!
+  productAttributeValue(id: Int!): ProductAttributeValue
+  cart(id: Int!): Cart
+  cartByUserOrSession(user_id: Int, session_id: String): Cart
+  cartItems(cart_id: Int!): [CartItem!]!
+  order(id: Int!): Order
+  orders(user_id: Int, session_id: String): [Order!]!
+  orderItems(order_id: Int!): [OrderItem!]!
+  orderItem(id: Int!): OrderItem
+  payments(order_id: Int!): [Payment!]!
+  payment(id: Int!): Payment
+  shippingAddresses(user_id: Int, session_id: String): [ShippingAddress!]!
+  shippingAddress(id: Int!): ShippingAddress
+  shippingMethods: [ShippingMethod!]!
+  shippingMethod(id: Int!): ShippingMethod
+  orderShipments(order_id: Int!): [OrderShipment!]!
+  orderShipment(id: Int!): OrderShipment
+  commissions(order_id: Int!): [Commission!]!
+  commission(id: Int!): Commission
+  activeCoupons: [Coupon!]!
+  couponByCode(code: String!): Coupon
+  returns(order_id: Int!): [Return!]!
+  return(id: Int!): Return
+  financialTransactions(order_id: Int!): [FinancialTransaction!]!
+  financialTransaction(id: Int!): FinancialTransaction
+}
+
+type Mutation {
+  createProduct(name: String!, slug: String!, description: String!, price: Float!, discount_price: Float, type: String!, stock_quantity: Int!, sku: String!, is_active: Boolean!, image_url: String): Product!
+  updateProduct(id: Int!, data: String!): Product!
+  removeProduct(id: Int!): Product!
+  addVariant(productId: Int!, name: String!, price: Float!, stock_quantity: Int!, sku: String!): ProductVariant!
+  createProductVariant(product_id: Int!, name: String!, price: Float!, stock_quantity: Int!, sku: String!): ProductVariant!
+  updateProductVariant(id: Int!, data: String!): ProductVariant!
+  removeProductVariant(id: Int!): ProductVariant!
+  createProductAttribute(name: String!): ProductAttribute!
+  updateProductAttribute(id: Int!, name: String!): ProductAttribute!
+  removeProductAttribute(id: Int!): ProductAttribute!
+  createProductAttributeValue(attribute_id: Int!, value: String!): ProductAttributeValue!
+  updateProductAttributeValue(id: Int!, value: String!): ProductAttributeValue!
+  removeProductAttributeValue(id: Int!): ProductAttributeValue!
+  createCart(user_id: Int, session_id: String): Cart!
+  removeCart(id: Int!): Cart!
+  addOrUpdateCartItem(cart_id: Int!, product_id: Int!, variant_id: Int, quantity: Int!, unit_price: Float!): CartItem!
+  updateCartItemQuantity(id: Int!, quantity: Int!): CartItem!
+  removeCartItem(id: Int!): CartItem!
+  createOrderFromCart(cart_id: Int!, status: String): Order!
+  updateOrderStatus(id: Int!, status: String!): Order!
+  removeOrder(id: Int!): Order!
+  updateOrderItem(id: Int!, data: String!): OrderItem!
+  removeOrderItem(id: Int!): OrderItem!
+  createPayment(order_id: Int!, amount: Float!, method: String!, status: String!, transaction_id: String!): Payment!
+  updatePaymentStatus(id: Int!, status: String!): Payment!
+  removePayment(id: Int!): Payment!
+  createShippingAddress(data: String!): ShippingAddress!
+  updateShippingAddress(id: Int!, data: String!): ShippingAddress!
+  removeShippingAddress(id: Int!): ShippingAddress!
+  createShippingMethod(data: String!): ShippingMethod!
+  updateShippingMethod(id: Int!, data: String!): ShippingMethod!
+  removeShippingMethod(id: Int!): ShippingMethod!
+  createOrderShipment(data: String!): OrderShipment!
+  updateOrderShipment(id: Int!, data: String!): OrderShipment!
+  removeOrderShipment(id: Int!): OrderShipment!
+  createCommission(order_id: Int!, amount: Float!, collected: Boolean): Commission!
+  removeCommission(id: Int!): Commission!
+  createCoupon(data: String!): Coupon!
+  updateCoupon(id: Int!, data: String!): Coupon!
+  removeCoupon(id: Int!): Coupon!
+  createReturn(order_id: Int!, user_id: Int!, reason: String!, status: String!, refund_amount: Float!): Return!
+  updateReturn(id: Int!, data: String!): Return!
+  removeReturn(id: Int!): Return!
+  createFinancialTransaction(order_id: Int!, amount: Float!, type: String!, status: String!, user_id: Int): FinancialTransaction!
+  updateFinancialTransactionStatus(id: Int!, status: String!): FinancialTransaction!
+  removeFinancialTransaction(id: Int!): FinancialTransaction!
+}

@@ -1,0 +1,237 @@
+// Schéma Prisma pour Zénith Ecommerce
+// Généré à partir de la structure fournie par l'utilisateur
+// Respecte les relations, contraintes et extensibilité
+
+/// Modèle Notification pour l’historique des notifications admin
+model Notification {
+  id        Int      @id @default(autoincrement())
+  title     String   // Titre de la notification (ex: Nouvelle commande)
+  message   String   // Message détaillé
+  type      String   // Type (system, order, incident, info...)
+  targetId  Int?     // Id utilisateur cible (null = notification globale admin)
+  read      Boolean  @default(false) // Statut lu/non lu
+  createdAt DateTime @default(now())
+  // Relation vers User cible (optionnelle)
+  target    User?    @relation(fields: [targetId], references: [id])
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // output par défaut, le client sera généré dans le node_modules du backend
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  phone      String?
+  avatar     String?  // URL de l’avatar utilisateur
+  role       String   // (client, admin, vendeur, livreur...)
+  status     String   // (active, inactive, banned)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  carts      Cart[]
+  orders     Order[]
+  shipping_addresses ShippingAddress[]
+  returns    Return[]
+  financial_transactions FinancialTransaction[]
+  // Notifications reçues (relation inverse)
+  notifications Notification[]
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  name          String
+  slug          String   @unique
+  description   String
+  image_url     String?  // URL de l’image principale du produit
+  price         Float
+  discount_price Float?
+  type          String   // (simple, variable, bundle)
+  stock_quantity Int
+  sku           String   @unique
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  variants      ProductVariant[]
+  cart_items    CartItem[]
+  order_items   OrderItem[]
+}
+
+model ProductVariant {
+  id            Int      @id @default(autoincrement())
+  product       Product  @relation(fields: [product_id], references: [id])
+  product_id    Int
+  name          String
+  price         Float
+  stock_quantity Int
+  sku           String   @unique
+  cart_items    CartItem[]
+  order_items   OrderItem[]
+}
+
+model ProductAttribute {
+  id    Int    @id @default(autoincrement())
+  name  String
+  values ProductAttributeValue[]
+}
+
+model ProductAttributeValue {
+  id           Int    @id @default(autoincrement())
+  attribute    ProductAttribute @relation(fields: [attribute_id], references: [id])
+  attribute_id Int
+  value        String
+}
+
+model Cart {
+  id         Int      @id @default(autoincrement())
+  user       User?    @relation(fields: [user_id], references: [id])
+  user_id    Int?
+  session_id String?
+  items      CartItem[]
+}
+
+model CartItem {
+  id         Int      @id @default(autoincrement())
+  cart       Cart     @relation(fields: [cart_id], references: [id])
+  cart_id    Int
+  product    Product  @relation(fields: [product_id], references: [id])
+  product_id Int
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  variant_id Int?
+  quantity   Int
+  unit_price Float
+}
+
+model Order {
+  id               Int      @id @default(autoincrement())
+  user             User     @relation(fields: [user_id], references: [id])
+  user_id          Int
+  status           String   // (pending, paid, shipped, delivered, canceled, refunded)
+  total_amount     Float
+  commission_amount Float
+  payment_method   String   // (card, mobile_money)
+  payment_status   String   // (pending, paid, failed, refunded)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  items            OrderItem[]
+  payments         Payment[]
+  commissions      Commission[]
+  order_shipments  OrderShipment[]
+  order_coupons    OrderCoupon[]
+  returns          Return[]
+  financial_transactions FinancialTransaction[]
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order      Order    @relation(fields: [order_id], references: [id])
+  order_id   Int
+  product    Product  @relation(fields: [product_id], references: [id])
+  product_id Int
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  variant_id Int?
+  quantity   Int
+  unit_price Float
+  subtotal   Float
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  order        Order    @relation(fields: [order_id], references: [id])
+  order_id     Int
+  amount       Float
+  method       String   // (card, mobile_money)
+  status       String   // (pending, success, failed)
+  transaction_id String
+  paid_at      DateTime?
+}
+
+model Commission {
+  id        Int      @id @default(autoincrement())
+  order     Order    @relation(fields: [order_id], references: [id])
+  order_id  Int
+  amount    Float
+  collected Boolean @default(false)
+}
+
+model ShippingAddress {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [user_id], references: [id])
+  user_id    Int
+  full_name  String
+  phone      String
+  address    String
+  city       String
+  country    String
+  postal_code String
+}
+
+model ShippingMethod {
+  id    Int    @id @default(autoincrement())
+  name  String // (standard, express)
+  price Float
+  order_shipments OrderShipment[]
+}
+
+model OrderShipment {
+  id                Int      @id @default(autoincrement())
+  order             Order    @relation(fields: [order_id], references: [id])
+  order_id          Int
+  shipping_method   ShippingMethod @relation(fields: [shipping_method_id], references: [id])
+  shipping_method_id Int
+  tracking_number   String?
+  status            String   // (pending, shipped, delivered)
+  shipped_at        DateTime?
+  delivered_at      DateTime?
+}
+
+model Coupon {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique
+  discount_type String   // (percentage, fixed)
+  discount_value Float
+  max_usage     Int
+  used_count    Int      @default(0)
+  expires_at    DateTime?
+  is_active     Boolean  @default(true)
+  order_coupons OrderCoupon[]
+}
+
+model OrderCoupon {
+  id               Int      @id @default(autoincrement())
+  order            Order    @relation(fields: [order_id], references: [id])
+  order_id         Int
+  coupon           Coupon   @relation(fields: [coupon_id], references: [id])
+  coupon_id        Int
+  discount_applied Float
+}
+
+model Return {
+  id           Int      @id @default(autoincrement())
+  order        Order    @relation(fields: [order_id], references: [id])
+  order_id     Int
+  user         User     @relation(fields: [user_id], references: [id])
+  user_id      Int
+  reason       String
+  status       String   // (pending, accepted, rejected, refunded)
+  refund_amount Float
+}
+
+model FinancialTransaction {
+  id        Int      @id @default(autoincrement())
+  user      User?    @relation(fields: [user_id], references: [id])
+  user_id   Int?
+  order     Order?   @relation(fields: [order_id], references: [id])
+  order_id  Int?
+  type      String   // (payment, commission, refund, withdrawal)
+  amount    Float
+  status    String
+  created_at DateTime @default(now())
+}

@@ -1,0 +1,9 @@
+# Backend Zénith
+
+- Nest.js (GraphQL API)
+- Prisma (ORM)
+- PostgreSQL
+- Socket.io (WebSockets)
+- RabbitMQ (microservices)
+
+Ce dossier contiendra l'API principale, la configuration Prisma et les modèles générés à partir de ta structure.
